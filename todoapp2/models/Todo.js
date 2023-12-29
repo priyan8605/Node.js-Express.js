@@ -4,12 +4,12 @@ const todoSchema=new mongoose.Schema(
         // schema ke andr hum data ka structure define krr rhe hai
         //todo object ke andr hum title,description,  rkhna chahte hai
         title:{
-            type:string,
+            type:String,
             required:true,//mtlb title chahiye hi chahiye
             maxLength:50,
         },
         description:{
-            type:string,
+            type:String,
             required:true,
             maxLength:50,
         },
@@ -27,3 +27,4 @@ const todoSchema=new mongoose.Schema(
         }
     }
 )
+module.exports=mongoose.model("Todo",todoSchema);

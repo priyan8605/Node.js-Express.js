@@ -11,6 +11,12 @@ const dbConnect=()=>
     process.exit(1);
 })
 }
+
+
+
+
+
+
 // "const dbConnect" this function will establish connection between database and our application
 //"(process.env.DATABASE_URL)" 'process' object me se ootha ke layenge databaseka url
 //pr humne database ka url ".env" me likha hai to isiliye hume pahle database ke url ko feed krna hoga process object ke andr
