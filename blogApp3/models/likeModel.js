@@ -8,10 +8,12 @@ const likeSchema=new mongoose.Schema({
         ref:"Post",//refering to "Post" model for id
     },
     user:{
-        type:string,
+        type:String,
         required:true
     }
 })
 
 // export
-exports.module=mongoose.model("Like",likeSchema);
+const Like=mongoose.model("Like",likeSchema);
+module.exports=Like;
+//exports.module=mongoose.model("Like",likeSchema);

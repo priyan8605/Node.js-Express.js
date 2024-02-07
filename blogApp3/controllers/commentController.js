@@ -1,12 +1,14 @@
 //import model
 const Post=require("../models/postModel");
 const Comment=require("../models/commentModel");
-const Like=require("../models/likeModel");
+//const Like=require("../models/likeModel");
+const { response } = require("express");
 
-exports. createComment=async(req,res)=>
+exports.createComment=async(req,res,)=>
 {//here we have to create comment
     //for create we will make object and with save() we inserst in an object
     try{
+        
         //   fetch data from request body
         const {post,user,body}=req.body;
         //create a comment object
@@ -17,16 +19,32 @@ exports. createComment=async(req,res)=>
         // adding new comment in post
         //1st find post using id on which new comment has been done
         //2nd add the new comment in the post's "comment" array
-           const updatedPost=new Post.findByIdAndUpdate(post,{$push:{comments:savedComment._id}},{new:true}); //Post ko find krenge through Id and oos Post ke comment array me new
+           const updatedPost=await Post.findByIdAndUpdate(post,{$push:{comments: savedComment._id}},{new: true})
+           .populate("comments")
+           .exec();
+           //return updatedPost;
+          //Post ko find krenge through Id and oos Post ke comment array me new
           //"post" of Comment model ke id ke help se "Post" model find kroo and "Post" model ke "comment" array me "saved comment" ka _id update krr do
           //{new:true} iske wajah update document jisme new comment hai that will return agr ye nhi krenge to hmare document me new comment jo ki update hua hai that wond be shown
            //$push is an operator for updating 
            //$pull is an operator for deleting
            //new comment daal krr update krr denge
-
+        res.json(
+            {
+                post:updatedPost,
+            }
+        );
     }
     catch(err)
     {
-
+        console.log("error is = "+err);
+        return res.status(500).json({
+            error:"Error while creating a comment",
+            error:err.msg,
+         });
     }
+}
+exports.dummyLink=(req,res)=>
+{
+    res.send("This is your dummy page");
 }
