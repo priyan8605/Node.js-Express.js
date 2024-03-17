@@ -14,4 +14,4 @@ const connect=()=>
             process.exit(1);
         })
 }
- module.exports=connect
+module.exports=connect;
