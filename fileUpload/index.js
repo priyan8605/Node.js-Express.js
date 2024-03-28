@@ -9,8 +9,8 @@ const PORT=process.env.PORT || 3000
 // adding middleware
 app.use(express.json())
 // npm install express-fileupload
-const fileupload=require("express-fileupload")//imports package
-app.use(fileupload({
+const fileUpload=require("express-fileupload")//imports package
+app.use(fileUpload({
     useTempFiles : true,
     tempFileDir : '/tmp/'
 }))

@@ -46,7 +46,9 @@ async function uploadFileToCloudinary(file,folder)
 {
 
     const options={folder}//options is an object which represent "image" folder that we have created on cloudinary
-  return await cloudinary.uploader.upload(file.tempFilePath,options)//used to upload file on cloudinary
+    console.log(`temp file path is ${file.tempFilePath}`);
+    options.resource_type="auto";//it will decide which type of file to be uploaded "image" or "video"
+    return await cloudinary.uploader.upload(file.tempFilePath,options)//used to upload file on cloudinary
 
 }
 
@@ -56,17 +58,17 @@ exports.imageUpload=async(req,res)=>
 {
     try{
     //1>data fetch from request
-    const {name}=req.body 
-    console.log('print name,email,tags ',name);
+    const {name,email,tags}=req.body 
+    console.log('print name,email,tags ',name,email,tags);
 
     const file=req.files.imageFile;//fetch the file from request
-    console.log("file is ",file);
+    console.log(`file is ${file}`);
 
     // 2>validation
     const supportedTypes=['jpg','jpeg','png'];//these are supported type
     const fileType=file.name.split('.')[3].toLowerCase();//'jpg','png','jpeg' all are in lower case so for not taking any chance we will convert the file 
     // name which we will get from the request in to lowercase
-    console.log('filetype is ',fileType);
+    console.log(`filetype is ${fileType}`);
     if(!isFileTypeSupported(fileType,supportedTypes))//agr fileType supported nhi hai
     {
       return res.status(400).json({
@@ -80,16 +82,17 @@ exports.imageUpload=async(req,res)=>
           console.log("response is ",response);
 
         //   DB me entry save kro
-        // const fileData=await File.create({
-        //     name,
-        //     tags,
-        //     imageUrl,
-        //     email
-        // })
+        const fileData=await File.create({
+            name,
+            tags,
+            imageUrl:response.secure_url,
+            email
+         })
 
         res.json({
             success:true,
-            message:"Image Successfully uploaded"
+            message:"Image Successfully uploaded",
+            imageUrl:response.secure_url,
         })
     
     }
@@ -99,6 +102,63 @@ exports.imageUpload=async(req,res)=>
         res.status(400).json({
             success:false,
             message:"Something went Wrong"
+        })
+    }
+}
+
+
+// video upload handler
+
+exports.videoUpload=async(req,res)=>
+{
+    try
+    {
+    //1> fetch data from request
+      const {name,tags,email}=req.body;
+     console.log(`for video ${name}, ${tags }, ${ email}`);
+     const file=req.files.videoFile;
+     console.log(`name of file is ${file}`);
+
+    //2> perform validation
+    const supportedTypes=['mp4','mov'];
+    const fileType=file.name.split('.')[1].toLowerCase();
+    console.log(`file type is ${file}`);
+    // adding upperlimit of 5mb for a video => 5b se jyada ka video upload nhi hoga
+
+
+
+    if(!isFileTypeSupported(fileType,supportedTypes))
+    {
+        return res.status(400).json({
+            success:false,
+            message:"File format is not supported"
+        })
+    }
+     //agr fileType supprted hai to oose cloudinary prr upload krna hai using upload()
+    
+     const response=await uploadFileToCloudinary(file,"image");//"image" is name of folder on cloudinary
+     console.log("response is ",response);
+
+   //   DB me entry save kro
+   const fileData=await File.create({
+       name,
+       tags,
+       videoUrl:response.secure_url,
+       email
+    })
+
+   res.json({
+       success:true,
+       message:"video Successfully uploaded",
+       videoUrl:response.secure_url,
+   })
+    }
+    catch(error)
+    {
+       console.log(`Error in videoUplopad handler ${error}`); 
+        res.status(400).json({
+            success:false,
+            message:"Some error in videoUpload"
         })
     }
 }
