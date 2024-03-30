@@ -42,11 +42,16 @@ function isFileTypeSupported(type,supportedTypes)
     return supportedTypes.includes(type)
     // The includes() method returns true if a string contains a specified string.
 }
-async function uploadFileToCloudinary(file,folder)
+async function uploadFileToCloudinary(file,folder,quality)
 {
 
     const options={folder}//options is an object which represent "image" folder that we have created on cloudinary
     console.log(`temp file path is ${file.tempFilePath}`);
+    if(quality)
+    {
+        // agr quality aa rha hai in parameter of function then if()
+        options.quality=quality//then options me i.e image folder me quality include ho jayega
+    }
     options.resource_type="auto";//it will decide which type of file to be uploaded "image" or "video"
     return await cloudinary.uploader.upload(file.tempFilePath,options)//used to upload file on cloudinary
 
@@ -144,7 +149,7 @@ exports.videoUpload=async(req,res)=>
        name,
        tags,
        videoUrl:response.secure_url,
-       email
+       email,
     })
 
    res.json({
@@ -161,4 +166,60 @@ exports.videoUpload=async(req,res)=>
             message:"Some error in videoUpload"
         })
     }
+}
+
+
+// imageSizeReducer handler==> ye imageSize ko compress krega then it will upload it on cloudinary
+exports.imageSizeReducer=async(req,res)=>
+{
+    // here we are uploading 600kb photo from local machine which will be stored on cloudinary as 196 kb
+    // becsause we are passing quality=30 in uploadFileToCloudinary(file,"image",30)
+    try{
+        //1>data fetch from request
+        const {name,email,tags}=req.body 
+        console.log('print name,email,tags ',name,email,tags);
+    
+        const file=req.files.imageFile;//fetch the file from request
+        console.log(`file is ${file}`);
+    
+        // 2>validation
+        const supportedTypes=['jpg','jpeg','png'];//these are supported type
+        const fileType=file.name.split('.')[1].toLowerCase();//'jpg','png','jpeg' all are in lower case so for not taking any chance we will convert the file 
+        // name which we will get from the request in to lowercase
+        console.log(`filetype is ${fileType}`);
+        if(!isFileTypeSupported(fileType,supportedTypes))//agr fileType supported nhi hai
+        {
+          return res.status(400).json({
+           success:false,
+           message:"file format is not supported"
+          })
+        }
+        //agr fileType supprted hai to oose cloudinary prr upload krna hai using upload()
+        
+             const response=await uploadFileToCloudinary(file,"image",2);//"image" is name of folder on cloudinary
+              console.log("response is ",response);
+    
+            //   DB me entry save kro
+            const fileData=await File.create({
+                name,
+                tags,
+                imageUrl:response.secure_url,
+                email
+             })
+    
+            res.json({
+                success:true,
+                message:"Image Successfully uploaded",
+                imageUrl:response.secure_url,
+            })
+        
+        }
+        catch(error)
+        {
+            console.log(`Error in imageSizeReducer handler is ${error} `);
+            res.status(400).json({
+                success:false,
+                message:"Something went Wrong"
+            })
+        }
 }
