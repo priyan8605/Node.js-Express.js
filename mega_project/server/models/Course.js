@@ -1,5 +1,9 @@
 const mongoose=require('mongoose');
-
+const Tag=require('./tags')
+const User=require('./User')
+const Section=require('./Section')
+const SubSection=require('./SubSection')
+const RatingAndReview=require('./RatingAndReview')
 const courseSchema=new mongoose.Schema({
     courseName:{
         type:String

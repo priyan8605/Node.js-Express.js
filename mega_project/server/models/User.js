@@ -1,5 +1,6 @@
 const mongoose=require('mongoose')
-
+const CourseProgress=require("./CourseProgress")
+const Course=require('./Course')
 const userSchema=new mongoose.Schema({
     firstName:{
         type:String,

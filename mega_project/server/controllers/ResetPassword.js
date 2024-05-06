@@ -31,7 +31,7 @@ exports.resetPasswordToken=async(req,res)=>{
             console.log(`token generated in resetPasswordToken() is =${token}`);
 
         //4> token aur token ka expiration time i.e "resetPasswordExpires:" we will add in User's model
-        // so harr ekk user ke data ke andr khud kaa ekk token hai aur ooska expiration time bhi
+        // so harr ekk user ke data ke andr khud kaa ekk token ho aur ooska expiration time bhi
         // 4>update user by adding token and it's expiration time
             const updatedDetails=await User.findOneAndUpdate({email:email},
                                 {
