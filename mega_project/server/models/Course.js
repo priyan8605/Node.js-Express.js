@@ -1,5 +1,5 @@
 const mongoose=require('mongoose');
-const Tag=require('./tags')
+const Category=require('./category')
 const User=require('./User')
 const Section=require('./Section')
 const SubSection=require('./SubSection')
@@ -35,9 +35,9 @@ const courseSchema=new mongoose.Schema({
     thumbnail:{
         type:String,
     },
-    tag:{
+    category:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"Tag",
+        ref:"Category",
     },
     studentsEnrolled:[{
         type:mongoose.Schema.Types.ObjectId,

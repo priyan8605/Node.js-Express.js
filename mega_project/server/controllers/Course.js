@@ -1,5 +1,5 @@
 const Course=require('../models/Course')
-const Tag=require('../models/tags')
+const Category=require('../models/category')
 const User=require("../models/User")
 const{uploadImageToCloudinary}=require('../utils/imageUploader')
 require("dotenv").config();
@@ -11,18 +11,18 @@ try
 // agr User logged in hai tbhi to vo courseCreate krr payega
 // agr hume  user ka id nikalna hai to vo hum nikal skte hai kyuki token ke "payload" 
 // me humne id already pass kiya hai see in Auth.js controller where const payload={..,id:user._id}
-// and fir auth.js middleware me  decoded token "decode" ko jisme "id" hai user ka oose hum requese me bhej rhe hai
+// and fir auth.js middleware me  decoded token "decode" ko jisme "id" hai user ka oose hum request me bhej rhe hai
 // req.user=decode
 
 // 1>fetch data from request body
-const {courseName,courseDescription,whatYouWillLearn,price,tag}=req.body;
-// yha tag ka id aayga req.body me se coz in model Course.js me tag:{type:....ObjectId,ref:tag}
+const {courseName,courseDescription,whatYouWillLearn,price,category}=req.body;
+// yha category ka id aayga req.body me se coz in model Course.js me Category:{type:....ObjectId,ref:Category}
 
 // 2>fetch thumbnail req.files.thumbnailImage
 const thumbnail=req.files.thumbnailImage;
 
 // perform validation on the data fetched
-if(!courseName||!courseDescription||!whatYouWillLearn||!price||!tag||thumbnail)
+if(!courseName||!courseDescription||!whatYouWillLearn||!price||!category||thumbnail)
 {
     return res.status(400).json({
         success:false,
@@ -45,15 +45,15 @@ if(!instructorDetails)
         message:"Instructor Details not found",
     })
 }
-// 5>check whether given tag is valid or not => perform validation on the tag
-// findByID(tag) use krr rhe hai kyuki req.body me se jo "tag" fetch krr rhe hai vo tag ka id hai naa ki tag itself
-// and that tag id is only passed as parameter in findById
-const tagDetails=await Tag.findById(tag);
-if(!tagDetails)
+// 5>check whether given category is valid or not => perform validation on the category
+// findByID(category) use krr rhe hai kyuki req.body me se jo "category" fetch krr rhe hai vo category ka id hai naa ki category itself
+// and that category id is only passed as parameter in findById
+const categoryDetails=await Category.findById(category);
+if(!categoryDetails)
 {
     return res.status(400).json({
         success:false,
-        message:"Tag Details not found",
+        message:"Category Details not found",
     })
 }
 
@@ -68,9 +68,9 @@ const newCourse=await Course.create({
     instructor:instructorDetails._id,
     price,
     whatYouWillLearn:instructorDetails._id,
-    tag:tagDetails._id,//tag ka id "tagDetails" me bhi hai aur jo req.body se "tag" fetch krr
-    // rhe hai that is also an id of "tag" 
-    // or =>tag:tag
+    category:categoryDetails._id,//Category ka id "CategoryDetails" me bhi hai aur jo req.body se "category" fetch krr
+    // rhe hai that is also an id of "Category" 
+    // or =>category:category
     thumbnail:thumbnailImage.secure_url
 })
 
@@ -93,7 +93,7 @@ await User.findByIdAndUpdate(
      {new:true}
 )
 
-// 9>Update Tag Schema is homework
+// 9>Update Category Schema is homework
 
 
 // 10>return response
