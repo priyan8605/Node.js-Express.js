@@ -8,7 +8,7 @@
 const User=require('../models/User');
 const mailSender=require('../utils/mailSender')
 const bcrypt=require("bcrypt")
-
+const crypto=require('crypto')
 exports.resetPasswordToken=async(req,res)=>{
     try
     {
@@ -27,7 +27,7 @@ exports.resetPasswordToken=async(req,res)=>{
            }
 
         // 3>generate token
-            const token=crypto.randomUUID();
+            const token=crypto.randomBytes(20).toString('hex');
             console.log(`token generated in resetPasswordToken() is =${token}`);
 
         //4> token aur token ka expiration time i.e "resetPasswordExpires:" we will add in User's model
@@ -36,12 +36,13 @@ exports.resetPasswordToken=async(req,res)=>{
             const updatedDetails=await User.findOneAndUpdate({email:email},
                                 {
                                     token:token,
-                                    resetPasswordExpires:Date.now()+5*60*1000,
+                                    resetPasswordExpires:Date.now()+3600000,
                                   },
                                 {
                                     new:true,//because of this updated document will return in response
                                 }
                             )
+                            console.log(`updatedDetails => ${updatedDetails}`);
         //   email ke aadhar pr user ko find out kiya and User schema ke token property me token uodate kiya
         // aur resetPasswordExpires property me expiration time update kiya 5 min
 
@@ -51,13 +52,15 @@ exports.resetPasswordToken=async(req,res)=>{
         //mtlb token ka value different hoga and different token ke value ke aadhar pee different frontend link bnega
 
         // 6>send mail containing the url or link
-        await mailSender(email,"Password reset link",`Password reset link : ${url}`)
+        await mailSender(email,"Password reset link", `Your Link for email verification is ${url}. Please click this url to reset your password.`)
 
         // 7>return response
              return res.status(200).json({
                 success:true,
                 message:"Email sent successfully,please check email and change password"
              })
+            //  when email will be sent and we click on link set in email another url will open in browser and in that url
+            // there will be token => 90f85e5755909570b6783074ea8cf2e52b6c58f9
 
     }
     catch(error)

@@ -102,8 +102,13 @@ exports.isStudent=(req,res,next)=>{
 
 
 // isInstructor is used for authorization as it's checking for role
-exports.isInstructor=(req,res,next)=>{
+exports.isInstructor=async(req,res,next)=>{
     try{
+
+        const userDetails = await User.findOne({ email: req.user.email });
+		console.log(`userDetails in isInstructor() of middlewares ${userDetails}`);
+
+		console.log(userDetails.accountType);
         // checking authorization for Instructor
      if(req.user.accountType !=='Instructor' )
      {
@@ -114,14 +119,9 @@ exports.isInstructor=(req,res,next)=>{
             message:"This is a protected route for Instructor"
         })
      }
-  //no need to give success response here success true bcoz res is already defined in user.js routes
-  // defined inside user.js router.get('/admin',auth,isAdmin,(req,res)=>{
-      res.status(200).json({
-          success:true,
-          message:"welcome to the protected route for Instructor"
-      })
 
-     next();
+     next();// => will take to the other function which has bee defined in route
+    //  router.post("/addSection", auth, isInstructor, createSection); here bcoz of next() after isInstructor(), createSection() will execute
     }
     catch(error)
     {
@@ -137,7 +137,8 @@ exports.isInstructor=(req,res,next)=>{
 exports.isAdmin=(req,res,next)=>{
     try{
         // checking authorization for Admin
-     if(req.user.accountType !=='isAdmin' )
+        console.log(`accountType in isAdmin() => ${req.user.accountType}`);
+     if(req.user.accountType !=='Admin' )
      {
         //agr "req" ke andr "user" ke andr "accountType" me "Admin" nhi hai then if()
         //req.user=decode==>isse "decode" ke andr jo role hai that will get into "req.user"

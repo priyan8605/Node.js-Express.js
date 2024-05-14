@@ -6,81 +6,14 @@
 // 4>change Password handler
 
 const User=require('../models/User')
+const Profile=require('../models/Profile')
 const OTP=require('../models/OTP')
 const otpGenerator=require('otp-generator')
 const bcrypt=require('bcrypt')
 const jwt=require('jsonwebtoken')
 require('dotenv').config();
-// 1> sendOTP()
-exports.sendOTP=async(req,res)=>
-{
-    try
-    {
-        const {email}=req.body;//fetch email from request's body
-        
-        // check whether user already exists or not
-        const checkUserPresent=await User.findOne({email});//based on the 'email' fetched from request body
-        // we will try to find whether User exists or not 
-        
-        // if user already exists then return response
-        if(checkUserPresent)
-        {
-            return res.status(401).json({
-                success:false,
-                message:"User already registered",
-            })
-        }
-
-       // User already do not exists so generate OTP
-       var otp=otpGenerator.generate(6,{
-             upperCaseAlphabets:false,
-             lowerCaseAlphabets:false,
-             specialChars:false}
-             )
-
-         console.log(`OTP generated is = ${otp}`);
-
-        //  check otp  is unique or not
-        const result=await OTP.findOne({otp:otp})//will check in DB whether 'otp' alrady exist in DB or not
-
-        while(result) //jbb tkk DB me result ke corresponding 'otp' mil rha hai tbb tkk hum new otp generate krte rhenge
-        {
-            otp=otpGenerator(6,{
-                upperCaseAlphabets:false,
-                lowerCaseAlphabets:false,
-                specialChars:false
-            });
-
-                result=await OTP.findOne({otp:otp})
-        }
-
-        // after creating unique otp we will crete an otp object which consist of 'email' , 'otp', 'createdAt'
-        // and now after crating an unique otp we have to do this unique otp entry in DB
-        const otpPayload={email,otp};//agr hum cratedAt nhi daalte hai to by default Date.now() will 
-        // come in place of createdAt ==> see in OTP.js
-
-        // create an entry for OTP
-        const otpBody=await OTP.create(otpPayload);//an object is created becoz of create()
-        console.log(`otpBody is = ${otpBody}`);
-
-        // return response
-        res.status(200).json({
-            success:true,
-            message:'OTP sent successfully',
-            otp
-        })
-
-    }
-    catch(error)
-    {
-        console.log(`error in Auth.js ==>`);
-        console.log(error.message);
-        return res.status(500).json({
-            success:false,
-            message:error.message
-        })
-    }
-}
+const mailSender=require('../utils/mailSender')
+const { passwordUpdated } = require("../mail/templates/passwordUpdate")
 
 //signUP()
 exports.signUp=async(req,res)=>{
@@ -135,10 +68,10 @@ exports.signUp=async(req,res)=>{
         // .length property in JavaScript is used to determine the length of a given string
         return res.status(400).json({
             success:false,
-            message:"OTP found"
+            message:"OTP not valid"
         })
     }
-    else if(otp!==recentOtp.otp)//"otp"=>fetched from req.body and "recentOtp.otp"=>otp fetched from DB
+    else if(otp!==recentOtp[0].otp)//"otp"=>fetched from req.body and "recentOtp[0].otp"=>otp fetched from DB
     {
         return res.status(400).json({
             success:false,
@@ -150,7 +83,11 @@ exports.signUp=async(req,res)=>{
     // 7>Hash the password
     const hashedPassword=await bcrypt.hash(password,10)
 
-    // 8>create entry in DB
+    // 8>create the user 
+    let approved = "";
+    approved === "Instructor" ? (approved = false) : (approved = true);
+
+    // 9>create additional Profile for user
     const profileDetails=await Profile.create({
         gender:null,
         dateOfBirth:null,
@@ -230,18 +167,21 @@ exports.login=async(req,res)=>
                 accountType:user.accountType,//user.accountType=>coming from DB
             }
             const token=jwt.sign(payload,process.env.JWT_SECRET,{
-                expiresIn:'2h'
+                expiresIn:'24h'
             });
-            user=user.toObject();//converts mongoose document to an object
+            console.log(`token => ${token}`);
+            // user=user.toObject();//converts mongoose document to an object  
+            // user=user.toObject() => agr ye krna hai to "const user=.." ko change krke "let user=..." kro
+            // because const that is constant ko reassign nhi krr skte
             user.token=token;
             user.password=undefined;
 
             // 5>create cookie and send response
-            const options={
-                expires:new Date(Date.now+3*24*60*60*1000),
+         const options={
+                expires:new Date(Date.now()+3*24*60*60*1000),
                 httpOnly:true,
             }
-            res.cookie("token",token,options).status(200).json({
+           res.cookie("token",token,options).status(200).json({
                 success:true,
                 token,
                 user,
@@ -260,12 +200,135 @@ exports.login=async(req,res)=>
       console.log(`error in login() = ${error}`);
       return res.status(500).json({
         success:false,
-        message:"Login failure, please try again"
+        message:"Login failure, please try again",
+        error:error.message
       })
     }
 }
-
+// 1> sendOTP()
+exports.sendOTP=async(req,res)=>
+  {
+      try
+      {
+          const {email}=req.body;//fetch email from request's body
+          
+          // check whether user already exists or not
+          const checkUserPresent=await User.findOne({email});//based on the 'email' fetched from request body
+          // we will try to find whether User exists or not 
+          
+          // if user already exists then return response
+          if(checkUserPresent)
+          {
+              return res.status(401).json({
+                  success:false,
+                  message:"User already registered",
+              })
+          }
+  
+         // User already do not exists so generate OTP
+         var otp=otpGenerator.generate(6,{
+               upperCaseAlphabets:false,
+               lowerCaseAlphabets:false,
+               specialChars:false}
+               )
+  
+           console.log(`OTP generated is = ${otp}`);
+  
+          //  check otp  is unique or not
+          const result=await OTP.findOne({otp:otp})//will check in DB whether 'otp' alrady exist in DB or not
+          console.log("OTP", otp);
+          console.log("Result", result);
+          while(result) //jbb tkk DB me result ke corresponding 'otp' mil rha hai tbb tkk hum new otp generate krte rhenge
+          {
+              otp=otpGenerator(6,{
+                  upperCaseAlphabets:false,
+                  lowerCaseAlphabets:false,
+                  specialChars:false
+              });
+  
+                  result=await OTP.findOne({otp:otp})
+          }
+  
+          // after creating unique otp we will crete an otp object which consist of 'email' , 'otp', 'createdAt'
+          // and now after crating an unique otp we have to do this unique otp entry in DB
+          const otpPayload={email,otp};//agr hum cratedAt nhi daalte hai to by default Date.now() will 
+          // come in place of createdAt ==> see in OTP.js
+  
+          // create an entry for OTP
+          const otpBody=await OTP.create(otpPayload);//an object is created becoz of create()
+          console.log(`otpBody is = ${otpBody}`);
+  
+          // return response
+          res.status(200).json({
+              success:true,
+              message:'OTP sent successfully',
+              otp
+          })
+  
+      }
+      catch(error)
+      {
+          console.log(`error in Auth.js ==>${error}`);
+          console.log(error.message);
+          return res.status(500).json({
+              success:false,
+              message:error.message
+          })
+      }
+  }
+  
 // changePassword
-exports.changePassword=async(req,res)=>{
-
-}
+exports.changePassword = async (req, res) => {
+    try {
+      const userDetails = await User.findById(req.user.id);
+  
+      const { oldPassword, newPassword } = req.body;
+  
+      const isPasswordMatch = await bcrypt.compare(
+        oldPassword,
+        userDetails.password
+      );
+      if (!isPasswordMatch) {
+        return res
+          .status(401)
+          .json({ success: false, message: "The password is incorrect" });
+      }
+  
+      const encryptedPassword = await bcrypt.hash(newPassword, 10);
+      const updatedUserDetails = await User.findByIdAndUpdate(
+        req.user.id,
+        { password: encryptedPassword },
+        { new: true }
+      );
+  
+      try {
+        const emailResponse = await mailSender(
+          updatedUserDetails.email,
+          "Password for your account has been updated",
+          passwordUpdated(
+            updatedUserDetails.email,
+            `Password updated successfully for ${updatedUserDetails.firstName} ${updatedUserDetails.lastName}`
+          )
+        );
+        console.log("Email sent successfully:", emailResponse.response);
+      } catch (error) {
+        console.error("Error occurred while sending email:", error);
+        return res.status(500).json({
+          success: false,
+          message: "Error occurred while sending email",
+          error: error.message,
+        });
+      }
+  
+      return res
+        .status(200)
+        .json({ success: true, message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Error occurred while updating password:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Error occurred while updating password",
+        error: error.message,
+      });
+    }
+  };

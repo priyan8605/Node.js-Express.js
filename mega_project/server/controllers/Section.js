@@ -5,24 +5,25 @@ exports.createSection=async(req,res)=>{
     try
     {
         //1>fetch data
-           const {sectionName,courseID}=req.body;
+           const {sectionName,courseId}=await req.body;
             //courseId is required so that we can update section in course 
             // sectionName is required so that section ke naam ke accordingly DB me entry create krr  paye
-
+             console.log(`sectionName => ${sectionName}`);
+             console.log(`courseId => ${courseId}`);
         //2>perform validation from data fetched
-        if(!sectionName||!courseID)
+        if(!sectionName ||!courseId)
         {
             return res.status(401).json({
                 success:false,
                 message:"Missing Properties"
             })
         }
-
+         else{
         //3>create Section
            const newSection=await Section.create({sectionName})
-
+           console.log(`newSection => ${newSection}`);
         //4>update course with section objectId
-           const updatedCourseDetails=await Course.findByIdAndUpdate(courseID,
+           const updatedCourseDetails=await Course.findByIdAndUpdate(courseId,
                                 //    req.body se aaya courseId Db ke jiss bhi course ke id
                                 // se match hoga oos course ko find krr ke layga
                                    
@@ -34,19 +35,27 @@ exports.createSection=async(req,res)=>{
                                     },
                                 {new:true}
                             )
-        // homework:use populate to replace section/sub-section both in updatedCourseDetails
+                            .populate({
+                                path:'courseContent',
+                                populate: {
+                                    path: "subSection",
+                                  },
+                            })
+                            .exec();
+        console.log(`updatedCourseDetails => ${updatedCourseDetails}`);
 
         // 5>return success response
-        return res.status(200).json({
+            res.status(200).json({
             success:true,
             message:"Section created successfully",
             updatedCourseDetails
         })
+     }
     }
     catch(error)
     {
         console.log(`Error in createSection()==> ${error}`);
-        return res.status(500).json({
+       return res.status(500).json({
             success:false,
             message:"Error occured in creating Section",
             error:error.message
@@ -58,7 +67,7 @@ exports.createSection=async(req,res)=>{
 exports.updateSection=async(req,res)=>{
     try{
         // 1>fetch data
-         const {sectionName,sectionId}=req.body
+         const {sectionName,sectionId,courseId}=req.body
 
         // 2>perform validation on data fetched
         if(!sectionName||!sectionId)
@@ -76,13 +85,24 @@ exports.updateSection=async(req,res)=>{
             {sectionName},
             {new:true}
         )
+    // update data of course
+        const course = await Course.findById(courseId)
+        .populate({
+          path: "courseContent",
+          populate: {
+            path: "subSection",
+          },
+        })
+        .exec();
+      console.log(course);
 
 
          //4>return success response
          return res.status(200).json({
             success:true,
             message:"Section updated successfully",
-            section
+            section:section,
+            course:course
          })
     }
     catch(error)
@@ -101,15 +121,23 @@ exports.deleteSection=async(req,res)=>{
     try{
         //  1>fetch id from params  
         // id hum req.body me bhi bhej skte hai but yha vo use naa krr kee params wala use krenge
-        const {sectionId}=req.params
+        const {sectionId,courseId}=req.body
 
 
         // 2>use findByIdAndDelete
+
           await Section.findByIdAndDelete(sectionId)
         //   params me jo bhi sectionId aayyga vo same id wala Section find krr ke layga and oos Section ko delete 
         // krr dega 
-        // [TODO =>see during Testing]:do we need to delete the entry from the Course Schema??
+
+         // [TODO =>see during Testing]:do we need to delete the entry from the Course Schema??
         // abb jo bhi Section hum delete krr rhe hai DB se oos deleted Section ka id bhi hume Course Schema se hatana hoga 
+        await Course.findByIdAndUpdate(courseId, {
+            $pull: {
+              courseContent: sectionId,
+            },
+          });
+        
 
 
          //3>return success response

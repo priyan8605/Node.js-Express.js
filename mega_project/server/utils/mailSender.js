@@ -14,8 +14,8 @@ const mailSender=async(email,title,body)=>{
             }
          });
 
-         let info=await WebTransportError.sendMail({
-            from:"StudyNotion || CodeHelp-by Babbar",
+         let info=await transport.sendMail({
+            from:`"Studynotion | CodeHelp" <${process.env.MAIL_USER}>`,
             to:`${email}`,
             subject:`${title}`,
             html:`${body}`
